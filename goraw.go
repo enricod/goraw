@@ -126,13 +126,15 @@ func mainPanel() *gtk.Widget {
 	if err != nil {
 		log.Fatal("Unable to create spin button:", err)
 	}
-	pb, err := gtk.ProgressBarNew()
-	if err != nil {
-		log.Fatal("Unable to create progress bar:", err)
-	}
+	/*
+		pb, err := gtk.ProgressBarNew()
+		if err != nil {
+			log.Fatal("Unable to create progress bar:", err)
+		}
+	*/
 	grid.Add(sb)
 	sb.SetHExpand(true)
-	grid.AttachNextTo(pb, sb, gtk.POS_RIGHT, 1, 1)
+	//grid.AttachNextTo(pb, sb, gtk.POS_RIGHT, 1, 1)
 	label.SetHExpand(true)
 
 	// Pass in a ProgressBar and the target SpinButton as user data rather
@@ -140,10 +142,11 @@ func mainPanel() *gtk.Widget {
 	// This can be useful when passing in a closure that has already been
 	// generated, but when you still wish to connect the callback with some
 	// variables only visible in this scope.
-	sb.Connect("value-changed", func(sb *gtk.SpinButton, pb *gtk.ProgressBar) {
-		pb.SetFraction(sb.GetValue() / 1)
-	}, pb)
-
+	/*
+		sb.Connect("value-changed", func(sb *gtk.SpinButton, pb *gtk.ProgressBar) {
+			pb.SetFraction(sb.GetValue() / 1)
+		}, pb)
+	*/
 	label, err = gtk.LabelNew("")
 	if err != nil {
 		log.Fatal("Unable to create label:", err)
@@ -168,7 +171,7 @@ func mainPanel() *gtk.Widget {
 		fmt.Println("you clicked a link to:", uri)
 	})
 
-	horBox.PackStart(grid, true, true, 6)
+	horBox.PackStart(grid, true, false, 6)
 
 	flowbox, err := gtk.FlowBoxNew()
 	if err != nil {
