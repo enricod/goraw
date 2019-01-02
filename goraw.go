@@ -80,6 +80,12 @@ func DoExtract(appSettings Settings) {
 }
 
 func mainPanel() *gtk.Widget {
+
+	horBox, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 6)
+	if err != nil {
+		log.Fatal("Unable to create horBox:", err)
+	}
+
 	grid, err := gtk.GridNew()
 	if err != nil {
 		log.Fatal("Unable to create grid:", err)
@@ -162,7 +168,94 @@ func mainPanel() *gtk.Widget {
 		fmt.Println("you clicked a link to:", uri)
 	})
 
-	return &grid.Container.Widget
+	horBox.PackStart(grid, true, true, 6)
+
+	flowbox, err := gtk.FlowBoxNew()
+	if err != nil {
+		log.Fatal("Unable to create FileChooserDialogNewWith1Button:", err)
+
+	}
+
+	createFlowbox(flowbox)
+	horBox.PackStart(flowbox, true, true, 6)
+	return &horBox.Container.Widget
+	//return &grid.Container.Widget
+}
+
+func createFlowbox(flowbox *gtk.FlowBox) {
+	colors := []string{
+		"AliceBlue",
+		"AntiqueWhite",
+		"AntiqueWhite1",
+		"AntiqueWhite2",
+		"AntiqueWhite3",
+		"AntiqueWhite4",
+		"aqua",
+		"aquamarine",
+		"aquamarine1",
+		"aquamarine2",
+		"aquamarine3",
+		"aquamarine4",
+		"azure",
+		"azure1",
+		"azure2",
+		"azure3",
+		"azure4",
+		"beige",
+		"bisque",
+		"bisque1",
+		"bisque2",
+		"bisque3",
+		"bisque4",
+		"black",
+		"BlanchedAlmond",
+		"blue",
+		"blue1",
+		"blue2",
+		"blue3",
+		"blue4",
+		"BlueViolet",
+		"brown",
+		"brown1",
+		"brown2",
+		"brown3",
+		"brown4",
+		"burlywood",
+		"burlywood1",
+		"burlywood2",
+		"burlywood3",
+		"burlywood4",
+		"CadetBlue",
+		"CadetBlue1",
+		"CadetBlue2",
+		"CadetBlue3",
+		"CadetBlue4",
+		"chartreuse",
+		"chartreuse1",
+		"chartreuse2",
+		"chartreuse3",
+		"chartreuse4",
+		"chocolate",
+		"chocolate1",
+		"chocolate2",
+		"chocolate3",
+		"chocolate4",
+		"coral",
+		"coral1",
+		"coral2",
+		"coral3",
+		"coral4",
+	}
+
+	for _, color := range colors {
+		button, err := gtk.ButtonNew()
+		button.SetLabel(color)
+		if err != nil {
+			log.Fatal("Unable to create FileChooserDialogNewWith1Button:", err)
+
+		}
+		flowbox.Add(button)
+	}
 }
 
 func dirSelectionChanged(widget *gtk.FileChooserButton) {
