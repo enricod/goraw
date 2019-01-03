@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/boltdb/bolt"
 	"github.com/enricod/goraw/libraw"
@@ -17,6 +18,7 @@ type Settings struct {
 }
 
 var appSettings Settings
+var flowbox *gtk.FlowBox
 
 func extensions() []string {
 	return []string{".ORF", ".CR2", ".RAF", ".ARW"}
@@ -54,8 +56,8 @@ func main() {
 	fmt.Println("done")
 }
 
-func DoExtract(appSettings Settings) {
-	exportPath := appSettings.ImagesDir + "/_export"
+func DoExtract(dirname string) {
+	exportPath := dirname + "/_export"
 	if _, err := os.Stat(exportPath); os.IsNotExist(err) {
 		os.Mkdir(exportPath, 0777)
 	}
@@ -66,7 +68,7 @@ func DoExtract(appSettings Settings) {
 	}
 	defer db.Close()
 
-	files, err := ioutil.ReadDir(appSettings.ImagesDir)
+	files, err := ioutil.ReadDir(dirname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,9 +76,19 @@ func DoExtract(appSettings Settings) {
 	for _, f := range files {
 		//fmt.Printf("%s", f.Name())
 		if IsStringInSlice(filepath.Ext(f.Name()), extensions()) {
-			libraw.ExportThumb(appSettings.ImagesDir, f, exportPath)
+			libraw.ExportThumb(dirname, f, exportPath)
 		}
 	}
+
+	processed := []string{}
+	files, err = ioutil.ReadDir(exportPath)
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), "_t.jpg") {
+			processed = append(processed, exportPath+"/"+f.Name())
+		}
+	}
+
+	mostraImmagini(processed, flowbox)
 }
 
 func mainPanel() *gtk.Widget {
@@ -85,6 +97,7 @@ func mainPanel() *gtk.Widget {
 	if err != nil {
 		log.Fatal("Unable to create horBox:", err)
 	}
+	horBox.SetHomogeneous(false)
 
 	grid, err := gtk.GridNew()
 	if err != nil {
@@ -171,21 +184,33 @@ func mainPanel() *gtk.Widget {
 		fmt.Println("you clicked a link to:", uri)
 	})
 
-	horBox.PackStart(grid, true, false, 6)
+	horBox.PackStart(grid, false, true, 6)
 
-	flowbox, err := gtk.FlowBoxNew()
+	flowbox, err = gtk.FlowBoxNew()
 	if err != nil {
 		log.Fatal("Unable to create FileChooserDialogNewWith1Button:", err)
 
 	}
 
-	createFlowbox(flowbox)
+	//popolaFlowbox(flowbox)
 	horBox.PackStart(flowbox, true, true, 6)
 	return &horBox.Container.Widget
 	//return &grid.Container.Widget
 }
 
-func createFlowbox(flowbox *gtk.FlowBox) {
+func mostraImmagini(immagini []string, flowbox *gtk.FlowBox) {
+	for _, color := range immagini {
+		img, err := gtk.ImageNewFromFile(color)
+		if err != nil {
+			log.Fatal("Unable to create FileChooserDialogNewWith1Button:", err)
+
+		}
+		flowbox.Add(img)
+	}
+	flowbox.ShowAll()
+}
+
+func popolaFlowbox(flowbox *gtk.FlowBox) {
 	colors := []string{
 		"AliceBlue",
 		"AntiqueWhite",
@@ -264,5 +289,5 @@ func createFlowbox(flowbox *gtk.FlowBox) {
 func dirSelectionChanged(widget *gtk.FileChooserButton) {
 	fmt.Printf("dir selected %s\n", widget.GetFilename())
 	appSettings.ImagesDir = widget.GetFilename()
-	DoExtract(appSettings)
+	DoExtract(widget.GetFilename())
 }

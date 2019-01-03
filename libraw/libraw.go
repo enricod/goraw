@@ -19,7 +19,7 @@ func lrInit() *C.libraw_data_t {
 	return C.libraw_init(0)
 }
 
-func ExportThumb(inputPath string, inputfile os.FileInfo, exportPath string) error {
+func ExportThumb(inputPath string, inputfile os.FileInfo, exportPath string) (string, error) {
 
 	outfile := exportPath + "/" + inputfile.Name() + "_embedded.jpg"
 	infile := inputPath + "/" + inputfile.Name()
@@ -43,7 +43,7 @@ func ExportThumb(inputPath string, inputfile os.FileInfo, exportPath string) err
 
 		lrClose(iprc)
 	}
-	return nil
+	return outfile, nil
 }
 
 func Export(inputPath string, inputfile os.FileInfo, exportPath string) error {
