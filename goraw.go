@@ -67,20 +67,22 @@ func main() {
 
 }
 
-func copyFile(sourceFile string, destinationFile string) {
+func copyFile(sourceFile string, destinationFile string) error {
 	input, err := ioutil.ReadFile(sourceFile)
 	if err != nil {
-		fmt.Println(err)
-		return
+
+		return err
 	}
 
 	err = ioutil.WriteFile(destinationFile, input, 0644)
 	if err != nil {
 		fmt.Println("Error creating", destinationFile)
-		fmt.Println(err)
-		return
+		return err
 	}
+	return nil
 }
+
+// DoExtract avvia scansione directory e estrazione JPEG in sottodirectory __work
 func DoExtract(dirname string) {
 	exportPath := dirname + "/__work"
 	if _, err := os.Stat(exportPath); os.IsNotExist(err) {
@@ -103,42 +105,11 @@ func DoExtract(dirname string) {
 		if IsStringInSlice(filepath.Ext(f.Name()), extensions()) {
 			exportedImage, _ := libraw.ExportEmbeddedJPEG(dirname, f, exportPath)
 			fmt.Printf("exported image %s \n", exportedImage)
-			/*
-				jpegImg, err2 := readJPEG(exportedImage)
-				if err2 != nil {
-					panic(err)
-				}
-
-					newImage := resize.Resize(160, 0, *jpegImg, resize.Lanczos3)
-
-					// Encode uses a Writer, use a Buffer if you need the raw []byte
-
-						thumbfile, err3 := os.Create(fmt.Sprintf("%s/%s", exportPath, f.Name()+"_t.jpg"))
-						if err3 != nil {
-							panic(err)
-						}
-						defer thumbfile.Close()
-
-						err = jpeg.Encode(thumbfile, newImage, nil)
-			*/
 		} else if filepath.Ext(f.Name()) == ".JPG" {
 			copyFile(dirname+"/"+f.Name(), exportPath+"/"+f.Name())
 			fmt.Printf("copyed image %s \n", f.Name())
 		}
-
 	}
-	/*
-		processed := []string{}
-		files, err = ioutil.ReadDir(exportPath_t)
-		for _, f := range files {
-			if strings.HasSuffix(f.Name(), "_t.jpg") {
-				processed = append(processed, exportPath_t+"/"+f.Name())
-
-			}
-		}
-
-		mostraImmagini(processed, flowbox)
-	*/
 }
 
 func readJPEG(filename string) (*image.Image, error) {
@@ -289,85 +260,8 @@ func mostraImmagini(immagini []string, flowbox *gtk.FlowBox) {
 	flowbox.ShowAll()
 }
 
-func popolaFlowbox(flowbox *gtk.FlowBox) {
-	colors := []string{
-		"AliceBlue",
-		"AntiqueWhite",
-		"AntiqueWhite1",
-		"AntiqueWhite2",
-		"AntiqueWhite3",
-		"AntiqueWhite4",
-		"aqua",
-		"aquamarine",
-		"aquamarine1",
-		"aquamarine2",
-		"aquamarine3",
-		"aquamarine4",
-		"azure",
-		"azure1",
-		"azure2",
-		"azure3",
-		"azure4",
-		"beige",
-		"bisque",
-		"bisque1",
-		"bisque2",
-		"bisque3",
-		"bisque4",
-		"black",
-		"BlanchedAlmond",
-		"blue",
-		"blue1",
-		"blue2",
-		"blue3",
-		"blue4",
-		"BlueViolet",
-		"brown",
-		"brown1",
-		"brown2",
-		"brown3",
-		"brown4",
-		"burlywood",
-		"burlywood1",
-		"burlywood2",
-		"burlywood3",
-		"burlywood4",
-		"CadetBlue",
-		"CadetBlue1",
-		"CadetBlue2",
-		"CadetBlue3",
-		"CadetBlue4",
-		"chartreuse",
-		"chartreuse1",
-		"chartreuse2",
-		"chartreuse3",
-		"chartreuse4",
-		"chocolate",
-		"chocolate1",
-		"chocolate2",
-		"chocolate3",
-		"chocolate4",
-		"coral",
-		"coral1",
-		"coral2",
-		"coral3",
-		"coral4",
-	}
-
-	for _, color := range colors {
-		button, err := gtk.ButtonNew()
-		button.SetLabel(color)
-		if err != nil {
-			log.Fatal("Unable to create FileChooserDialogNewWith1Button:", err)
-
-		}
-		flowbox.Add(button)
-	}
-}
-
 func dirSelectionChanged(widget *gtk.FileChooserButton) {
 	fmt.Printf("dir selected %s\n", widget.GetFilename())
 	appSettings.ImagesDir = widget.GetFilename()
-	go DoExtract(widget.GetFilename())
-	fmt.Printf("dir parsed %s\n", widget.GetFilename())
+	DoExtract(widget.GetFilename())
 }
