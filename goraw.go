@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/boltdb/bolt"
 	"github.com/enricod/goraw/libraw"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/nfnt/resize"
+	bolt "go.etcd.io/bbolt"
 )
 
 type Settings struct {
@@ -36,7 +39,13 @@ func IsStringInSlice(a string, list []string) bool {
 
 func main() {
 
-	appSettings = Settings{ImagesDir: "."}
+	argsWithoutProg := os.Args[1:]
+	if len(argsWithoutProg) > 0 {
+		appSettings = Settings{ImagesDir: argsWithoutProg[0]}
+		fmt.Printf("selezionata dir %s", appSettings.ImagesDir)
+	} else {
+		appSettings = Settings{ImagesDir: "."}
+	}
 	gtk.Init(nil)
 
 	win, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
@@ -52,6 +61,7 @@ func main() {
 
 	gtk.Main()
 
+	DoExtract(appSettings.ImagesDir)
 	//fmt.Scanln()
 	fmt.Println("done")
 }
@@ -62,7 +72,12 @@ func DoExtract(dirname string) {
 		os.Mkdir(exportPath, 0777)
 	}
 
-	db, err := bolt.Open(exportPath+"/goraw.db", 0600, nil)
+	exportPath_t := dirname + "/_export_t"
+	if _, err := os.Stat(exportPath_t); os.IsNotExist(err) {
+		os.Mkdir(exportPath_t, 0777)
+	}
+
+	db, err := bolt.Open(dirname+"/_grbolt.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,19 +91,65 @@ func DoExtract(dirname string) {
 	for _, f := range files {
 		//fmt.Printf("%s", f.Name())
 		if IsStringInSlice(filepath.Ext(f.Name()), extensions()) {
-			libraw.ExportThumb(dirname, f, exportPath)
+			exportedImage, _ := libraw.ExportEmbeddedJPEG(dirname, f, exportPath)
+			jpegImg, err2 := readJPEG(exportedImage)
+			if err2 != nil {
+				panic(err)
+			}
+			newImage := resize.Resize(160, 0, *jpegImg, resize.Lanczos3)
+
+			// Encode uses a Writer, use a Buffer if you need the raw []byte
+
+			thumbfile, err3 := os.Create(fmt.Sprintf("%s/%s", exportPath_t, f.Name()+"_t.jpg"))
+			if err3 != nil {
+				panic(err)
+			}
+			defer thumbfile.Close()
+
+			err = jpeg.Encode(thumbfile, newImage, nil)
+
 		}
 	}
 
 	processed := []string{}
-	files, err = ioutil.ReadDir(exportPath)
+	files, err = ioutil.ReadDir(exportPath_t)
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), "_t.jpg") {
-			processed = append(processed, exportPath+"/"+f.Name())
+			processed = append(processed, exportPath_t+"/"+f.Name())
+
 		}
 	}
 
 	mostraImmagini(processed, flowbox)
+}
+
+func readJPEG(filename string) (*image.Image, error) {
+	existingImageFile, err := os.Open(filename)
+	if err != nil {
+		// Handle error
+	}
+	defer existingImageFile.Close()
+
+	// Calling the generic image.Decode() will tell give us the data
+	// and type of image it is as a string. We expect "png"
+	//imageData, imageType, err := image.Decode(existingImageFile)
+	//if err != nil {
+	// Handle error
+	//}
+	//fmt.Println(imageData)
+	//fmt.Println(imageType)
+
+	// We only need this because we already read from the file
+	// We have to reset the file pointer back to beginning
+	existingImageFile.Seek(0, 0)
+
+	// Alternatively, since we know it is a png already
+	// we can call png.Decode() directly
+	loadedImage, err := jpeg.Decode(existingImageFile)
+	if err != nil {
+		// Handle error
+	}
+	return &loadedImage, nil
 }
 
 func mainPanel() *gtk.Widget {
