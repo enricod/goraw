@@ -8,11 +8,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/enricod/goraw/libraw"
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/nfnt/resize"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -42,10 +40,13 @@ func main() {
 	argsWithoutProg := os.Args[1:]
 	if len(argsWithoutProg) > 0 {
 		appSettings = Settings{ImagesDir: argsWithoutProg[0]}
-		fmt.Printf("selezionata dir %s", appSettings.ImagesDir)
+		fmt.Printf("working dir %s \n", appSettings.ImagesDir)
 	} else {
-		appSettings = Settings{ImagesDir: "."}
+		appSettings = Settings{ImagesDir: "/data2/Pictures/2018/12"}
 	}
+
+	//DoExtract(appSettings.ImagesDir)
+
 	gtk.Init(nil)
 
 	win, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
@@ -61,20 +62,29 @@ func main() {
 
 	gtk.Main()
 
-	DoExtract(appSettings.ImagesDir)
 	//fmt.Scanln()
 	fmt.Println("done")
+
 }
 
-func DoExtract(dirname string) {
-	exportPath := dirname + "/_export"
-	if _, err := os.Stat(exportPath); os.IsNotExist(err) {
-		os.Mkdir(exportPath, 0777)
+func copyFile(sourceFile string, destinationFile string) {
+	input, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
-	exportPath_t := dirname + "/_export_t"
-	if _, err := os.Stat(exportPath_t); os.IsNotExist(err) {
-		os.Mkdir(exportPath_t, 0777)
+	err = ioutil.WriteFile(destinationFile, input, 0644)
+	if err != nil {
+		fmt.Println("Error creating", destinationFile)
+		fmt.Println(err)
+		return
+	}
+}
+func DoExtract(dirname string) {
+	exportPath := dirname + "/__work"
+	if _, err := os.Stat(exportPath); os.IsNotExist(err) {
+		os.Mkdir(exportPath, 0777)
 	}
 
 	db, err := bolt.Open(dirname+"/_grbolt.db", 0600, nil)
@@ -92,35 +102,43 @@ func DoExtract(dirname string) {
 		//fmt.Printf("%s", f.Name())
 		if IsStringInSlice(filepath.Ext(f.Name()), extensions()) {
 			exportedImage, _ := libraw.ExportEmbeddedJPEG(dirname, f, exportPath)
-			jpegImg, err2 := readJPEG(exportedImage)
-			if err2 != nil {
-				panic(err)
-			}
-			newImage := resize.Resize(160, 0, *jpegImg, resize.Lanczos3)
+			fmt.Printf("exported image %s \n", exportedImage)
+			/*
+				jpegImg, err2 := readJPEG(exportedImage)
+				if err2 != nil {
+					panic(err)
+				}
 
-			// Encode uses a Writer, use a Buffer if you need the raw []byte
+					newImage := resize.Resize(160, 0, *jpegImg, resize.Lanczos3)
 
-			thumbfile, err3 := os.Create(fmt.Sprintf("%s/%s", exportPath_t, f.Name()+"_t.jpg"))
-			if err3 != nil {
-				panic(err)
-			}
-			defer thumbfile.Close()
+					// Encode uses a Writer, use a Buffer if you need the raw []byte
 
-			err = jpeg.Encode(thumbfile, newImage, nil)
+						thumbfile, err3 := os.Create(fmt.Sprintf("%s/%s", exportPath, f.Name()+"_t.jpg"))
+						if err3 != nil {
+							panic(err)
+						}
+						defer thumbfile.Close()
 
+						err = jpeg.Encode(thumbfile, newImage, nil)
+			*/
+		} else if filepath.Ext(f.Name()) == ".JPG" {
+			copyFile(dirname+"/"+f.Name(), exportPath+"/"+f.Name())
+			fmt.Printf("copyed image %s \n", f.Name())
 		}
+
 	}
+	/*
+		processed := []string{}
+		files, err = ioutil.ReadDir(exportPath_t)
+		for _, f := range files {
+			if strings.HasSuffix(f.Name(), "_t.jpg") {
+				processed = append(processed, exportPath_t+"/"+f.Name())
 
-	processed := []string{}
-	files, err = ioutil.ReadDir(exportPath_t)
-	for _, f := range files {
-		if strings.HasSuffix(f.Name(), "_t.jpg") {
-			processed = append(processed, exportPath_t+"/"+f.Name())
-
+			}
 		}
-	}
 
-	mostraImmagini(processed, flowbox)
+		mostraImmagini(processed, flowbox)
+	*/
 }
 
 func readJPEG(filename string) (*image.Image, error) {
@@ -253,7 +271,7 @@ func mainPanel() *gtk.Widget {
 
 	}
 
-	//popolaFlowbox(flowbox)
+	// popolaFlowbox(flowbox)
 	horBox.PackStart(flowbox, true, true, 6)
 	return &horBox.Container.Widget
 	//return &grid.Container.Widget
@@ -350,5 +368,6 @@ func popolaFlowbox(flowbox *gtk.FlowBox) {
 func dirSelectionChanged(widget *gtk.FileChooserButton) {
 	fmt.Printf("dir selected %s\n", widget.GetFilename())
 	appSettings.ImagesDir = widget.GetFilename()
-	DoExtract(widget.GetFilename())
+	go DoExtract(widget.GetFilename())
+	fmt.Printf("dir parsed %s\n", widget.GetFilename())
 }

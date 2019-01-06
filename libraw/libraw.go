@@ -36,7 +36,7 @@ func ExportEmbeddedJPEG(inputPath string, inputfile os.FileInfo, exportPath stri
 		//iprc.params.output_tiff = 1
 		//outfile := exportPath + "/" + inputfile.Name() + ".tiff"
 
-		fmt.Printf("exporting %s  ->  %s \n", inputfile.Name(), outfile)
+		//fmt.Printf("exporting %s  ->  %s \n", inputfile.Name(), outfile)
 		ret = C.libraw_dcraw_thumb_writer(iprc, C.CString(outfile))
 
 		handleError("save thumb", int(ret))
